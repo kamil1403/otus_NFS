@@ -139,9 +139,24 @@ mount
 mount | grep 192.168.1.99
 # Показыает протоколы
 rpcinfo | grep nfs
-# Редактирует файл nfs-kernel-service (/etc/default/)
-nano /etc/default/nfs-kernel-service
-# 
+# Редактирует файл nfs-kernel-server (/etc/default/)
+nano /etc/default/nfs-kernel-server
+# Запрещает nfs v.3 (не работает)
+RPCMOUNTDARGS="--manage-gids"
+RPCMOUNTDOPTS="--no-nfs-version 3"
+# Показывает службы (интересует /usr/sbin/rpc.mountd)
+ps -efl | grep rpc
+# Ищет расположение rpc службы (\ комментирует символы)
+grep -r "\/usr\/sbin\/rpc\.mountd" /lib/systemd
+# Редактирием службу
+nano /lib/systemd/system/nfs-mountd.service
+# Прописываем --no-nfs-version 3 ("костыльный" вариант)
+ExecStart=/usr/sbin/rpc.mountd --no-nfs-version 3
+# Перезапускаем службу 
+systemctl daemon-reload
+systemctl restart nfs-server.service
+
+
 
 
 zfs create tmp_pool/zfs02   
