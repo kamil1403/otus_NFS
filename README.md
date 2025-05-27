@@ -118,7 +118,7 @@ zfs list -t snapshot
 # Установка NFS-сервера
 sudo apt update
 sudo apt install nfs-kernel-server
-# Настройка файла exports на сервере (/mnt/exports) 
+# Настройка файла exports на сервере (/etc/exports) 
 /mnt/raid01 *(rw,root_squash)
 # Применяет экспорт
 sudo exportfs -ra   
@@ -126,8 +126,23 @@ sudo exportfs -ra
 sudo exportfs -v 
 # Монтирует каталог на клиенте
 mount 192.168.1.99:/mnt/raid01 /mnt/ 
+# или
+mount -o vers=3 192.168.1.99:/mnt/raid01  /mnt
+# Размонирует каталог
+umount /mnt
 # Показывает установленную версию NFS
 dpkg -l | grep -i nfs 
+# Показать экспортируемые каталоги
+showmount -e 192.168.1.99
+# Показыает смонитрованные каталоги
+mount 
+mount | grep 192.168.1.99
+# Показыает протоколы
+rpcinfo | grep nfs
+# Редактирует файл nfs-kernel-service (/etc/default/)
+nano /etc/default/nfs-kernel-service
+# 
+
 
 zfs create tmp_pool/zfs02   
 zfs create tmp_pool/zfs03   
