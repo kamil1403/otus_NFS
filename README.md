@@ -78,7 +78,7 @@ mkdir -p /srv/share/upload
 chown -R nobody:nogroup /srv/share
 # Открывает полные права
 chmod 0777 /srv/share/upload
-# Добавляет запись в файл для автоматического монтирования
+# Открывает доступ к папке /srv/share для клиента 192.168.1.100
 echo "/srv/share 192.168.1.100/32(rw,sync,root_squash)" >> /etc/exports
 # Применяет экспорт
 exportfs -ra
