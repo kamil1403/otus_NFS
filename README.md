@@ -11,76 +11,55 @@
 • На сервере NFS должна быть подготовлена и экспортирована директория;   
 • В экспортированной директории должна быть поддиректория с именем upload и правами на запись в неё;   
 • Экспортированная директория должна автоматически монтироваться на клиенте при старте виртуальной машины (systemd, autofs или fstab — любым способом);  
-• Монтирование и работа NFS на клиенте должна быть организована с использованием NFSv3.  
+• Монтирование и работа NFS на клиенте должна быть организована с использованием NFSv3;  
+• Cоздать bash-скрипт nfss_script.sh — для конфигурирования сервера, в которых описать bash-командами ранее выполненные шаги;
+• Cоздать bash-скрипт nfsc_script.sh — для конфигурирования клиента, в которых описать bash-командами ранее выполненные шаги.
 
 Результат:   
-• Создал 4 файловые системы с разными алгоритмами сжатия и скопировал лог файлы. Результат см. на скриншоте 🖼️ ["gzip"](https://github.com/kamil1403/otus_ZFS/blob/main/screenshots/gzip_zfs.png)  
-• Импортировал пул и посмотрел его настройки. Результат см. на скриншоте 🖼️ ["pool"](https://github.com/kamil1403/otus_ZFS/blob/main/screenshots/pool_zfs.png)  
-• Создал снапшот и восстановил файлы из него. Результат см. на скриншоте 🖼️ ["snapshot"](https://github.com/kamil1403/otus_ZFS/blob/main/screenshots/snapshot_zfs.png) 
+• Запустил две виртуальные машины (Server и Client), настроил между ними связь через NFS. Шаги описал в 
+• Создал скрипт для конфигурирования NFS на сервере. Результат см. на скриншоте 🖼️ ["pool"](https://github.com/kamil1403/otus_ZFS/blob/main/screenshots/pool_zfs.png)  
+• Создал скрипт для конфигурирования NFS на клиенте. Результат см. на скриншоте 🖼️ ["snapshot"](https://github.com/kamil1403/otus_ZFS/blob/main/screenshots/snapshot_zfs.png) 
 
 
 ## 🧭 Оглавление 🖼️
 
-- [📦 Алгоритмы сжатия](#gzip)
-- [⚙️ Импорт и настройки пула](#pool)
-- [📸 Работа со снапшотами](#snapshot)
+- [📦 Настройка NFS на сервере](#nfs_ser)
+- [⚙️ Настройка NFS на клиенте](#nfs_cl)
+- [✍🏻 Скрипт автоматической настройки NFS на сервере](#bash_ser)
+- [✍🏻 Скрипт автоматической настройки NFS на клиенте](#bash_cl)
 - [💡 Различные команды из урока](#other)
 
 ---
 
-<a id="gzip"></a>
-## 📦 Алгоритмы сжатия
+<a id="nfs_ser"></a>
+## 📦 Настройка NFS на сервере (IP 192.168.1.99)
 
 ```bash
-# Создает новый пул   
-zpool create otus_pool /dev/sdb /dev/sdc   
-# Создает четыре файловые системы   
-zfs create otus_pool/gzip_test_zfs   
-zfs create otus_pool/lz4_test_zfs   
-zfs create otus_pool/lzjb_test_zfs   
-zfs create otus_pool/zle_test_zfs   
-# Применяет сжатие   
-zfs set compression=gzip otus_pool/gzip_test_zfs   
-zfs set compression=lz4 otus_pool/lz4_test_zfs   
-zfs set compression=lzjb otus_pool/lzjb_test_zfs   
-zfs set compression=zle otus_pool/zle_test_zfs   
-# Копирует для теста файлы логов   
-cp -r /var/log/* /otus_pool/gzip_test_zfs   
-cp -r /var/log/* /otus_pool/lz4_test_zfs   
-cp -r /var/log/* /otus_pool/lzjb_test_zfs   
-cp -r /var/log/* /otus_pool/zle_test_zfs   
-# Показывает степерь сжатия файлов в каждом каталоге   
-zfs get compressratio otus_pool  
-zfs get compressratio otus_pool/gzip_test_zfs   
-zfs get compressratio otus_pool/lz4_test_zfs   
-zfs get compressratio otus_pool/lzjb_test_zfs   
-zfs get compressratio otus_pool/zle_test_zfs 
+sudo apt update
+sudo apt install nfs-kernel-server
+mkdir -p /srv/share/upload
+chown -R nobody:nogroup /srv/share
+chmod 0777 /srv/share/upload 
+nano /etc/exports
+/srv/share 192.168.1.100/32(rw,sync,root_squash)
+exportfs -ra 
+sudo exportfs -s
+cd /srv/share/upload
+touch check_file_server
 ```
 
 ---
 
-<a id="pool"></a>
-## ⚙️ Импорт и настройки пула
+<a id="nfs_cl"></a>
+## ⚙️ Настройка NFS на клиенте (IP 192.168.1.100)
 
 ```bash|
-# Показывает пулы, доступные для импорта  
-zpool import
-# Подключает пул
-zpool import otus_pool
-# Размер пула
-zpool list otus_pool
-# Тип пула
-zpool status otus_pool
-# Показывает степерь сжатия файлов в каждом каталоге   
-zfs get compressratio otus_pool  
-zfs get compressratio otus_pool/gzip_test_zfs   
-zfs get compressratio otus_pool/lz4_test_zfs   
-zfs get compressratio otus_pool/lzjb_test_zfs   
-zfs get compressratio otus_pool/zle_test_zfs 
-#Показывает контрольные суммы пула
-zfs get checksum otus_pool
-# Показыает все настройки пула
-zfs get all otus_pool 
+sudo apt install nfs-common
+echo "192.168.1.99:/srv/share/ /mnt nfs vers=3,defaults 0 0" >> /etc/fstab
+systemctl daemon-reload 
+mount | grep mnt 
+sudo reboot
+showmount -a 192.168.1.99
 ```
 
 ---
@@ -148,45 +127,6 @@ ExecStart=/usr/sbin/rpc.mountd --no-nfs-version 3
 # Перезапускаем службу 
 systemctl daemon-reload
 systemctl restart nfs-server.service
-
-
-
-
-zfs create tmp_pool/zfs02   
-zfs create tmp_pool/zfs03   
-# Показывает все файловые системы ZFS с их размером, использованием и статусом   
-zfs list   
-# Показывает статус дедупликации (удаление дубликатов блоков данных)   
-zfs get dedup   
-# Включает дедупликацию на файловой системе zfs02   
-zfs set dedup=on tmp_pool/zfs02   
-# Показывает все параметры ZFS с выводом ошибок в стандартный поток   
-zfs get all 2>&1 | less   
-# Создает директории для теста   
-mkdir /tmp_pool/zfs02/test01   
-mkdir /tmp_pool/zfs02/test02   
-# Копирует логи для теста   
-cp -r /var/log/* tmp_pool/zfs01   
-cp -r /var/log/* tmp_pool/zfs02   
-# Показывает текущие параметры сжатия   
-zfs get compression   
-zfs get compressratio   
-# Включает/выключает сжатие на zfs03   
-zfs set compression=on tmp_pool/zfs03   
-zfs set compression=off tmp_pool/zfs03   
-# Удаляет файловую систему zfs03 и её содержимое (если примонтировано)   
-rm -rf /tmp_pool/zfs03*   
-# Удаляет файловую систему zfs01   
-zfs destroy tmp_pool/zfs01   
-# Удаляет пул
-sudo zfs destroy -r tmp_pool
-sudo zpool -f destroy tmp_pool
-# Показывает установленные квоты на файловые системы   
-zfs get quota   
-# Ограничивает объём файловой системы zfs01 до 10 мегабайт
-zfs set quota=10M tmp_pool/zfs01
-# Отключает пул
-zpool export otus_pool
 ```
 
 ---
