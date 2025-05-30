@@ -137,7 +137,7 @@ mount -o vers=3 192.168.1.99:/mnt/raid01  /mnt
 umount /mnt
 # Показывает установленную версию NFS
 dpkg -l | grep -i nfs 
-# Показать экспортируемые каталоги
+# Показывает экспортируемые каталоги
 showmount -e 192.168.1.99
 # Показыает смонитрованные каталоги
 mount 
@@ -153,15 +153,13 @@ RPCMOUNTDOPTS="--no-nfs-version 3"
 ps -efl | grep rpc
 # Ищет расположение rpc службы (\ комментирует символы)
 grep -r "\/usr\/sbin\/rpc\.mountd" /lib/systemd
-# Редактирием службу
+# Редактирует службу
 nano /lib/systemd/system/nfs-mountd.service
-# Прописываем --no-nfs-version 3 ("костыльный" вариант)
+# Прописывает --no-nfs-version 3 ("костыльный" вариант)
 ExecStart=/usr/sbin/rpc.mountd --no-nfs-version 3
-# Перезапускаем службу 
+# Перезапускает службу 
 systemctl daemon-reload
 systemctl restart nfs-server.service
 ```
 
 ---
-
-
